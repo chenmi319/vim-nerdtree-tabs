@@ -367,12 +367,32 @@ fun! s:CloseIfOnlyNerdTreeLeft()
       " last file buffer, no need to warry about failure.
       quit
     else
-      " call feedkeys(":tabc\<CR>:\<BS>")
-      call timer_start(20, {-> execute('q') })
-      call timer_start(250, {-> execute('vertical resize 31') })
-      call timer_start(300, {-> execute('wincmd w') })
-      " close
+      call timer_start(0, {tid -> s:TabCloseAndFixWidth()})
     endif
+  endif
+endfun
+
+" }}}
+" s:TabCloseAndFixWidth() {{{
+"
+" Close the current tab (which only has NERDTree left) and fix the NERDTree
+" width in the tab we land on.
+fun! s:TabCloseAndFixWidth()
+  try
+    tabclose
+  catch /E784/
+    " E784: Cannot close last tab page — fall through to quit
+    quit
+    return
+  endtry
+  " After landing on another tab, ensure NERDTree has the correct width
+  if exists("t:NERDTreeBufName") && bufwinnr(t:NERDTreeBufName) != -1
+    let l:cur = winnr()
+    let l:ntwinnr = bufwinnr(t:NERDTreeBufName)
+    exe l:ntwinnr . 'wincmd w'
+    exe 'silent vertical resize ' . g:NERDTreeWinSize
+    setlocal winfixwidth
+    exe l:cur . 'wincmd w'
   endif
 endfun
 
